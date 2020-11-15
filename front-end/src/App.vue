@@ -1,26 +1,33 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div class="container-fluid">
+    <h1 class="display-1">Mongo Aggregate Splitter</h1>
+    <JsonForm @parse-json="parseJson" />
+    <Result :text="this.splittedJson" />
+  </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue';
+import Result from './components/Result/Result.vue';
+import JsonForm from './components/JsonForm/JsonForm.vue';
 
 export default {
   name: 'App',
-  components: {
-    HelloWorld,
+  data() {
+    return {
+      splittedJson: [],
+    };
+  },
+  components: { JsonForm, Result },
+  methods: {
+    parseJson(jsonText) {
+      try {
+        this.splittedJson = JSON.parse(jsonText);
+      } catch (e) {
+        if (e.name === 'SyntaxError') {
+          console.error('Invalid Json');
+        }
+      }
+    },
   },
 };
 </script>
-
-<style lang="scss">
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-</style>
