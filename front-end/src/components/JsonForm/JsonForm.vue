@@ -3,7 +3,7 @@
     <div class="form-group">
       <label for="json-textarea">Paste your JSON here</label>
       <textarea
-        class="form-control"
+        :class="{ 'form-control': true, 'is-invalid': isInvalid }"
         :value="jsonText"
         id="json-textarea"
         @change="handleChange"
@@ -23,6 +23,9 @@ export default {
     return {
       jsonText: '',
     };
+  },
+  props: {
+    isInvalid: Boolean,
   },
   methods: {
     handleSubmit() {

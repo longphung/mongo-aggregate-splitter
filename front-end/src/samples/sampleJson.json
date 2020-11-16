@@ -1,0 +1,769 @@
+[
+  {
+    "$match": {
+      "_groupId": "hiXoBCDXkMgJoG6F2"
+    }
+  },
+  {
+    "$lookup": {
+      "from": "lead_sources",
+      "let": {
+        "lead_source": "$leadSourceId"
+      },
+      "pipeline": [
+        {
+          "$match": {
+            "$expr": {
+              "$eq": ["$_id", "$$lead_source"]
+            }
+          }
+        },
+        {
+          "$addFields": {
+            "leadSource": "$name"
+          }
+        },
+        {
+          "$project": {
+            "leadSource": 1
+          }
+        }
+      ],
+      "as": "leadSourceField"
+    }
+  },
+  {
+    "$replaceRoot": {
+      "newRoot": {
+        "$mergeObjects": [
+          {
+            "$arrayElemAt": ["$leadSourceField", 0]
+          },
+          "$$ROOT"
+        ]
+      }
+    }
+  },
+  {
+    "$lookup": {
+      "from": "utilities",
+      "let": {
+        "utilities": "$utilityId"
+      },
+      "pipeline": [
+        {
+          "$match": {
+            "$expr": {
+              "$eq": ["$_id", "$$utilities"]
+            }
+          }
+        },
+        {
+          "$addFields": {
+            "utility": "$name"
+          }
+        },
+        {
+          "$project": {
+            "utility": 1
+          }
+        }
+      ],
+      "as": "utilityField"
+    }
+  },
+  {
+    "$replaceRoot": {
+      "newRoot": {
+        "$mergeObjects": [
+          {
+            "$arrayElemAt": ["$utilityField", 0]
+          },
+          "$$ROOT"
+        ]
+      }
+    }
+  },
+  {
+    "$lookup": {
+      "from": "funding_sources",
+      "let": {
+        "funding_sources": "$fundingSourceId"
+      },
+      "pipeline": [
+        {
+          "$match": {
+            "$expr": {
+              "$eq": ["$_id", "$$funding_sources"]
+            }
+          }
+        },
+        {
+          "$addFields": {
+            "fundingSource": "$name"
+          }
+        },
+        {
+          "$project": {
+            "fundingSource": 1
+          }
+        }
+      ],
+      "as": "fundingSourceField"
+    }
+  },
+  {
+    "$replaceRoot": {
+      "newRoot": {
+        "$mergeObjects": [
+          {
+            "$arrayElemAt": ["$fundingSourceField", 0]
+          },
+          "$$ROOT"
+        ]
+      }
+    }
+  },
+  {
+    "$lookup": {
+      "from": "contacts",
+      "let": {
+        "contacts": "$contactId"
+      },
+      "pipeline": [
+        {
+          "$match": {
+            "$expr": {
+              "$eq": ["$_id", "$$contacts"]
+            }
+          }
+        },
+        {
+          "$project": {
+            "_id": 0
+          }
+        }
+      ],
+      "as": "homeowner"
+    }
+  },
+  {
+    "$project": {
+      "contactId": 0
+    }
+  },
+  {
+    "$replaceRoot": {
+      "newRoot": {
+        "$mergeObjects": [
+          {
+            "$arrayElemAt": ["$homeowner", 0]
+          },
+          "$$ROOT"
+        ]
+      }
+    }
+  },
+  {
+    "$lookup": {
+      "from": "users",
+      "let": {
+        "assignedMember": "$assignedMember"
+      },
+      "pipeline": [
+        {
+          "$match": {
+            "$expr": {
+              "$eq": ["$_id", "$$assignedMember"]
+            }
+          }
+        },
+        {
+          "$addFields": {
+            "assignedAgentName": {
+              "$concat": ["$profile.firstName", " ", "$profile.lastName"]
+            },
+            "assignedAgentEmail": "$originEmail"
+          }
+        },
+        {
+          "$project": {
+            "assignedAgentName": 1,
+            "assignedAgentEmail": 1
+          }
+        }
+      ],
+      "as": "assignedAgent"
+    }
+  },
+  {
+    "$replaceRoot": {
+      "newRoot": {
+        "$mergeObjects": [
+          {
+            "$arrayElemAt": ["$assignedAgent", 0]
+          },
+          "$$ROOT"
+        ]
+      }
+    }
+  },
+  {
+    "$lookup": {
+      "from": "accounts",
+      "let": {
+        "accountId": "$accountId"
+      },
+      "pipeline": [
+        {
+          "$match": {
+            "$expr": {
+              "$eq": ["$_id", "$$accountId"]
+            }
+          }
+        },
+        {
+          "$addFields": {
+            "partnerAccountName": "$name"
+          }
+        },
+        {
+          "$project": {
+            "partnerAccountName": 1
+          }
+        }
+      ],
+      "as": "partnerAccount"
+    }
+  },
+  {
+    "$replaceRoot": {
+      "newRoot": {
+        "$mergeObjects": [
+          {
+            "$arrayElemAt": ["$partnerAccount", 0]
+          },
+          "$$ROOT"
+        ]
+      }
+    }
+  },
+  {
+    "$lookup": {
+      "from": "quotes",
+      "let": {
+        "opportunityId": "$_id",
+        "systemSize": "$systemSize"
+      },
+      "pipeline": [
+        {
+          "$match": {
+            "$expr": {
+              "$and": [
+                {
+                  "$eq": ["$primary", true]
+                },
+                {
+                  "$eq": ["$oppId", "$$opportunityId"]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "$addFields": {
+            "turnkeyCost": "$amount",
+            "noLaborPkgTax": {
+              "$multiply": [
+                {
+                  "$toDouble": "$noLaborPkgPrice"
+                },
+                "$taxOnEquipment",
+                0.01
+              ]
+            },
+            "pricePerWatt": {
+              "$cond": [
+                {
+                  "$eq": ["$systemSize", 0]
+                },
+                "$amount",
+                {
+                  "$divide": ["$amount", "$systemSize"]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "$project": {
+            "_id": 0,
+            "amount": 0
+          }
+        }
+      ],
+      "as": "primaryQuote"
+    }
+  },
+  {
+    "$replaceRoot": {
+      "newRoot": {
+        "$mergeObjects": [
+          {
+            "$arrayElemAt": ["$primaryQuote", 0]
+          },
+          "$$ROOT"
+        ]
+      }
+    }
+  },
+  {
+    "$addFields": {
+      "avgBill": {
+        "$convert": {
+          "input": "$avgBill",
+          "to": "double",
+          "onError": 0
+        }
+      },
+      "zip": {
+        "$toDouble": "$zip"
+      }
+    }
+  },
+  {
+    "$project": {
+      "leadSourceField": 0,
+      "utilityField": 0,
+      "fundingSourceField": 0,
+      "homeowner": 0,
+      "primaryQuote": 0,
+      "assignedAgent": 0,
+      "partnerAccount": 0
+    }
+  },
+  {
+    "$match": {
+      "_groupId": "hiXoBCDXkMgJoG6F2"
+    }
+  },
+  {
+    "$sort": {
+      "createdAt": 1
+    }
+  },
+  {
+    "$lookup": {
+      "from": "custom_object_definitions",
+      "pipeline": [
+        {
+          "$match": {
+            "$expr": {
+              "$and": [
+                {
+                  "$eq": ["$name", "opportunity"]
+                },
+                {
+                  "$eq": ["$_groupId", "hiXoBCDXkMgJoG6F2"]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "$addFields": {
+            "oppCustomObjectId": "$_id"
+          }
+        },
+        {
+          "$project": {
+            "oppCustomObjectId": 1,
+            "_id": 0
+          }
+        }
+      ],
+      "as": "opp_custom_object"
+    }
+  },
+  {
+    "$replaceRoot": {
+      "newRoot": {
+        "$mergeObjects": [
+          {
+            "$arrayElemAt": ["$opp_custom_object", 0]
+          },
+          "$$ROOT"
+        ]
+      }
+    }
+  },
+  {
+    "$lookup": {
+      "from": "custom_object_definitions",
+      "let": {
+        "quoteTypeName": "$primaryQuoteType"
+      },
+      "pipeline": [
+        {
+          "$match": {
+            "$expr": {
+              "$and": [
+                {
+                  "$cond": [
+                    "$$quoteTypeName",
+                    {
+                      "$eq": ["$quoteTypeName", "$$quoteTypeName"]
+                    },
+                    false
+                  ]
+                },
+                {
+                  "$eq": ["$_groupId", "hiXoBCDXkMgJoG6F2"]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "$addFields": {
+            "quoteCustomObjectId": "$_id"
+          }
+        },
+        {
+          "$project": {
+            "quoteCustomObjectId": 1,
+            "_id": 0
+          }
+        }
+      ],
+      "as": "quote_custom_object"
+    }
+  },
+  {
+    "$replaceRoot": {
+      "newRoot": {
+        "$mergeObjects": [
+          {
+            "$arrayElemAt": ["$quote_custom_object", 0]
+          },
+          "$$ROOT"
+        ]
+      }
+    }
+  },
+  {
+    "$lookup": {
+      "from": "field_definitions",
+      "let": {
+        "oppCustomObjectId": "$oppCustomObjectId",
+        "oppId": "$_id"
+      },
+      "pipeline": [
+        {
+          "$match": {
+            "$expr": {
+              "$and": [
+                {
+                  "$eq": ["$_groupId", "hiXoBCDXkMgJoG6F2"]
+                },
+                {
+                  "$eq": ["$customObjectId", "$$oppCustomObjectId"]
+                },
+                {
+                  "$or": [
+                    {
+                      "$in": ["$_id", ["Anticipated_Quarter_1598474188735"]]
+                    },
+                    {
+                      "$in": ["$label", []]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "$lookup": {
+            "from": "field_definition_data",
+            "let": {
+              "field_definition_data": "$_id",
+              "objectBelongId": "$$oppId",
+              "isSystem": "$isSystem"
+            },
+            "pipeline": [
+              {
+                "$match": {
+                  "$expr": {
+                    "$cond": ["$$isSystem", false, true]
+                  }
+                }
+              },
+              {
+                "$match": {
+                  "$expr": {
+                    "$and": [
+                      {
+                        "$eq": ["$objectBelongId", "$$objectBelongId"]
+                      },
+                      {
+                        "$eq": ["$fieldId", "$$field_definition_data"]
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "$project": {
+                  "value": 1,
+                  "_id": 0
+                }
+              }
+            ],
+            "as": "field_data"
+          }
+        },
+        {
+          "$replaceRoot": {
+            "newRoot": {
+              "$mergeObjects": [
+                {
+                  "$arrayElemAt": ["$field_data", 0]
+                },
+                "$$ROOT"
+              ]
+            }
+          }
+        },
+        {
+          "$project": {
+            "field_data": 0
+          }
+        },
+        {
+          "$addFields": {
+            "index": {
+              "$cond": [
+                {
+                  "$eq": ["$type", "Dropdown"]
+                },
+                {
+                  "$indexOfArray": [
+                    "$additionalData.options.value",
+                    {
+                      "$ifNull": ["$value", "$defaultValue"]
+                    }
+                  ]
+                },
+                null
+              ]
+            }
+          }
+        },
+        {
+          "$addFields": {
+            "dropdownValue": {
+              "$cond": [
+                {
+                  "$ne": ["$index", -1]
+                },
+                {
+                  "$arrayElemAt": ["$additionalData.options", "$index"]
+                },
+                "$value"
+              ]
+            }
+          }
+        },
+        {
+          "$addFields": {
+            "value": {
+              "$ifNull": ["$dropdownValue.label", "$value"]
+            }
+          }
+        },
+        {
+          "$project": {
+            "dropdownValue": 0
+          }
+        }
+      ],
+      "as": "oppFieldDefinitions"
+    }
+  },
+  {
+    "$lookup": {
+      "from": "field_definitions",
+      "let": {
+        "quoteCustomObjectId": "$quoteCustomObjectId",
+        "quoteId": "$quoteId"
+      },
+      "pipeline": [
+        {
+          "$match": {
+            "$expr": {
+              "$and": [
+                {
+                  "$eq": ["$_groupId", "hiXoBCDXkMgJoG6F2"]
+                },
+                {
+                  "$or": [
+                    {
+                      "$eq": ["$customObjectId", "$$quoteCustomObjectId"]
+                    },
+                    {
+                      "$eq": ["$customObjectId", "quote"]
+                    }
+                  ]
+                },
+                {
+                  "$or": [
+                    {
+                      "$in": ["$_id", ["Anticipated_Quarter_1598474188735"]]
+                    },
+                    {
+                      "$in": ["$label", []]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "$lookup": {
+            "from": "field_definition_data",
+            "let": {
+              "field_definition_data": "$_id",
+              "objectBelongId": "$$quoteId",
+              "isSystem": "$isSystem"
+            },
+            "pipeline": [
+              {
+                "$match": {
+                  "$expr": {
+                    "$cond": ["$$isSystem", false, true]
+                  }
+                }
+              },
+              {
+                "$match": {
+                  "$expr": {
+                    "$and": [
+                      {
+                        "$eq": ["$objectBelongId", "$$objectBelongId"]
+                      },
+                      {
+                        "$eq": ["$fieldId", "$$field_definition_data"]
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "$project": {
+                  "value": 1,
+                  "_id": 0
+                }
+              }
+            ],
+            "as": "field_data"
+          }
+        },
+        {
+          "$replaceRoot": {
+            "newRoot": {
+              "$mergeObjects": [
+                {
+                  "$arrayElemAt": ["$field_data", 0]
+                },
+                "$$ROOT"
+              ]
+            }
+          }
+        },
+        {
+          "$project": {
+            "field_data": 0
+          }
+        },
+        {
+          "$addFields": {
+            "index": {
+              "$cond": [
+                {
+                  "$eq": ["$type", "Dropdown"]
+                },
+                {
+                  "$indexOfArray": [
+                    "$additionalData.options.value",
+                    {
+                      "$ifNull": ["$value", "$defaultValue"]
+                    }
+                  ]
+                },
+                null
+              ]
+            }
+          }
+        },
+        {
+          "$addFields": {
+            "dropdownValue": {
+              "$cond": [
+                {
+                  "$ne": ["$index", -1]
+                },
+                {
+                  "$arrayElemAt": ["$additionalData.options", "$index"]
+                },
+                "$value"
+              ]
+            }
+          }
+        },
+        {
+          "$addFields": {
+            "value": {
+              "$ifNull": ["$dropdownValue.label", "$value"]
+            }
+          }
+        },
+        {
+          "$project": {
+            "dropdownValue": 0
+          }
+        }
+      ],
+      "as": "quoteFieldDefinitions"
+    }
+  },
+  {
+    "$match": {
+      "$and": [
+        {
+          "oppFieldDefinitions": {
+            "$elemMatch": {
+              "_id": "Anticipated_Quarter_1598474188735",
+              "value": {
+                "$in": ["Q3 2020"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "$project": {
+      "opp_custom_object": 0,
+      "quote_custom_object": 0
+    }
+  },
+  {
+    "$limit": 20
+  },
+  {
+    "$skip": 0
+  }
+]
